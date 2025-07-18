@@ -13,18 +13,12 @@ app.use(express.json());
 app.use(express.static('.'));
 
 // 代理API请求
+const { fetchIpInfo, fetchCityInfo } = require('./utils/proxy');
+
 app.get('/api/ip/:ip', async (req, res) => {
     try {
         const ip = req.params.ip;
-        const url = `https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ip}`;
-        
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        
-        const data = await response.json();
+        const data = await fetchIpInfo(ip);
         res.json(data);
     } catch (error) {
         console.error('IP查询错误:', error);
@@ -36,15 +30,7 @@ app.get('/api/ip/:ip', async (req, res) => {
 app.get('/api/city/:lat/:lng', async (req, res) => {
     try {
         const { lat, lng } = req.params;
-        const url = `https://apimobile.meituan.com/group/v1/city/latlng/${lat},${lng}?tag=0`;
-        
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        
-        const data = await response.json();
+        const data = await fetchCityInfo(lat, lng);
         res.json(data);
     } catch (error) {
         console.error('城市查询错误:', error);

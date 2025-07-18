@@ -675,21 +675,21 @@
     <div class="container">
         <div class="header">
             <h1>IP地理位置查询</h1>
-            <p>输入IP地址查询其地理位置信息</p>
+            <p>基于美团API <a href="https://www.nodeseek.com/post-325992-1" target="_blank">https://www.nodeseek.com/post-325992-1</a></p>
         </div>
 
         <div class="proxy-mode-selector" id="proxyModeSelector">
             <h3>选择代理模式</h3>
             <div class="mode-buttons">
-                <button type="button" class="mode-btn active" data-mode="node">Node.js代理 (推荐)</button>
-                <button type="button" class="mode-btn" data-mode="cors">CORS代理</button>
+                <button type="button" class="mode-btn active" data-mode="cors">CORS代理</button>
+                <button type="button" class="mode-btn" data-mode="node">Node代理</button>
             </div>
             <div class="mode-info">
-                <div class="mode-description" id="nodeMode">
-                    <strong>Node.js代理模式:</strong> 使用本地代理服务器，稳定可靠，需要运行 <code>npm start</code>
-                </div>
                 <div class="mode-description" id="corsMode" style="display: none;">
                     <strong>CORS代理模式:</strong> 使用公共代理服务，无需本地服务器，但可能不稳定
+                </div>
+                <div class="mode-description" id="nodeMode">
+                    <strong>Node代理模式:</strong> 使用本地代理服务器，稳定可靠，需要运行 <code>npm start</code>
                 </div>
             </div>
         </div>

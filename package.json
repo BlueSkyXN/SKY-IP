@@ -1,0 +1,17 @@
+{
+  "name": "ip-query-proxy",
+  "version": "1.0.0",
+  "description": "IP地理位置查询代理服务器",
+  "main": "proxy-server.js",
+  "scripts": {
+    "start": "node proxy-server.js",
+    "dev": "nodemon proxy-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

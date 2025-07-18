@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP地理位置查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: #667eea;
+        }
+
+        .search-btn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result-title::before {
+            content: "📍";
+            margin-right: 10px;
+        }
+
+        .result-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffe6e6;
+            color: #cc0000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #cc0000;
+        }
+
+        .city-info {
+            margin-top: 20px;
+        }
+
+        .city-info .result-title::before {
+            content: "🏙️";
+        }
+
+        /* Enhanced result cards */
+        .result-card.enhanced {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 1px solid #e3e6ea;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .result-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            margin: -25px -25px 20px -25px;
+        }
+
+        .result-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .result-title .flag {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .result-title .title-text {
+            flex: 1;
+        }
+
+        .ip-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+            font-weight: normal;
+        }
+
+        .badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .status-badge, .foreign-badge, .domestic-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-badge.open {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-badge.closed {
+            background: #dc3545;
+            color: white;
+        }
+
+        .foreign-badge {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .domestic-badge {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .location-summary {
+            margin-top: 15px;
+        }
+
+        .location-path {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            font-size: 1.1em;
+        }
+
+        .location-path .separator {
+            opacity: 0.7;
+            margin: 0 5px;
+        }
+
+        .location-path .country {
+            font-weight: bold;
+        }
+
+        .location-path .province,
+        .location-path .city,
+        .location-path .district {
+            opacity: 0.9;
+        }
+
+        .city-main-info {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .city-name {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .city-pinyin {
+            font-size: 0.9em;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .result-details {
+            margin-top: 0;
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1em;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+        }
+
+        /* 大屏幕优化 - 显示更多列 */
+        @media (min-width: 1200px) {
+            .info-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+        }
+
+        @media (min-width: 992px) and (max-width: 1199px) {
+            .info-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        .info-item.compact {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 8px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .info-item.compact:hover {
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .info-item.compact .info-label {
+            font-size: 0.75em;
+            color: #6c757d;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+        }
+
+        .info-item.compact .info-value {
+            font-size: 0.9em;
+            color: #212529;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        .info-value.coordinates {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        /* Loading animation enhancement */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .loading::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error message enhancement */
+        .error {
+            background: linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%);
+            color: #cc0000;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 5px solid #cc0000;
+            box-shadow: 0 4px 15px rgba(204, 0, 0, 0.1);
+        }
+
+        /* Raw data display */
+        .raw-data-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            margin-top: 20px;
+            background: transparent;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .raw-data-toggle:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .raw-data-toggle .icon {
+            transition: transform 0.3s ease;
+            font-size: 1.2em;
+        }
+
+        .raw-data-toggle.expanded .icon {
+            transform: rotate(180deg);
+        }
+
+        .raw-data-panel {
+            margin-top: 15px;
+            border-radius: 8px;
+            background: #1e1e1e;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
+
+        .raw-data-panel.expanded {
+            max-height: 500px;
+        }
+
+        .raw-data-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #2d2d2d;
+            border-bottom: 1px solid #404040;
+        }
+
+        .raw-data-title {
+            color: #ffffff;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+        }
+
+        .raw-data-content {
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+            color: #ffffff;
+        }
+
+        .raw-data-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* JSON syntax highlighting */
+        .json-key {
+            color: #9cdcfe;
+        }
+
+        .json-string {
+            color: #ce9178;
+        }
+
+        .json-number {
+            color: #b5cea8;
+        }
+
+        .json-boolean {
+            color: #569cd6;
+        }
+
+        .json-null {
+            color: #569cd6;
+        }
+
+        .json-punctuation {
+            color: #d4d4d4;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .result-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .location-path {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .location-path .separator {
+                display: none;
+            }
+
+            .raw-data-panel.expanded {
+                max-height: 300px;
+            }
+
+            .raw-data-content {
+                font-size: 0.8em;
+                padding: 12px;
+            }
+        }
+
+        .proxy-mode-selector {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .proxy-mode-selector h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
+            background: #f0f8ff;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-info {
+            margin-top: 15px;
+        }
+
+        .mode-description {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .cors-proxy-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border: 1px solid #ffc107;
+        }
+
+        .cors-proxy-selector h4 {
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .proxy-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .proxy-options label {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .proxy-options label:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+
+        .proxy-options input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .input-group {
+                min-width: 100%;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+
+            .mode-buttons {
+                flex-direction: column;
+            }
+
+            .mode-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IP地理位置查询</h1>
+            <p>输入IP地址查询其地理位置信息</p>
+        </div>
+
+        <div class="proxy-mode-selector" id="proxyModeSelector">
+            <h3>选择代理模式</h3>
+            <div class="mode-buttons">
+                <button type="button" class="mode-btn active" data-mode="node">Node.js代理 (推荐)</button>
+                <button type="button" class="mode-btn" data-mode="cors">CORS代理</button>
+            </div>
+            <div class="mode-info">
+                <div class="mode-description" id="nodeMode">
+                    <strong>Node.js代理模式:</strong> 使用本地代理服务器，稳定可靠，需要运行 <code>npm start</code>
+                </div>
+                <div class="mode-description" id="corsMode" style="display: none;">
+                    <strong>CORS代理模式:</strong> 使用公共代理服务，无需本地服务器，但可能不稳定
+                </div>
+            </div>
+        </div>
+
+        <div class="cors-proxy-selector" id="corsProxySelector" style="display: none;">
+            <h4>CORS代理服务</h4>
+            <div class="proxy-options">
+                <label><input type="radio" name="corsProxy" value="allorigins" checked> AllOrigins Raw</label>
+            </div>
+        </div>
+
+        <form class="search-form" id="searchForm">
+            <div class="input-group">
+                <input type="text" id="ipInput" placeholder="请输入IP地址 (例如: 1.1.1.1)" required>
+            </div>
+            <button type="submit" class="search-btn" id="searchBtn">查询</button>
+        </form>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        // 代理配置
+        const PROXY_CONFIG = {
+            node: {
+                ip: `${window.location.origin}/api/ip`,
+                city: `${window.location.origin}/api/city`
+            },
+            cors: {
+                allorigins: 'https://api.allorigins.win/raw?url='
+            }
+        };
+
+        const MEITUAN_API = {
+            ip: 'https://apimobile.meituan.com/locate/v2/ip/loc',
+            city: 'https://apimobile.meituan.com/group/v1/city/latlng'
+        };
+
+        // DOM元素
+        const form = document.getElementById('searchForm');
+        const ipInput = document.getElementById('ipInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const results = document.getElementById('results');
+        const proxyModeSelector = document.getElementById('proxyModeSelector');
+        const corsProxySelector = document.getElementById('corsProxySelector');
+
+        // 当前模式
+        let currentMode = 'node';
+        
+        // 存储原始数据
+        let rawIPData = null;
+        let rawCityData = null;
+
+        // 模式切换事件
+        proxyModeSelector.addEventListener('click', (e) => {
+            if (e.target.classList.contains('mode-btn')) {
+                const mode = e.target.dataset.mode;
+                switchMode(mode);
+            }
+        });
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            
+            // 更新描述
+            document.getElementById('nodeMode').style.display = mode === 'node' ? 'block' : 'none';
+            document.getElementById('corsMode').style.display = mode === 'cors' ? 'block' : 'none';
+            
+            // 显示/隐藏CORS代理选择器
+            corsProxySelector.style.display = mode === 'cors' ? 'block' : 'none';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ip = ipInput.value.trim();
+            
+            if (!ip) {
+                showError('请输入有效的IP地址');
+                return;
+            }
+
+            if (!isValidIP(ip)) {
+                showError('请输入正确格式的IP地址');
+                return;
+            }
+
+            await queryIPLocation(ip);
+        });
+
+        function isValidIP(ip) {
+            const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            return ipRegex.test(ip);
+        }
+
+        async function queryIPLocation(ip) {
+            try {
+                setLoading(true);
+                
+                let data;
+                
+                if (currentMode === 'node') {
+                    // Node.js 代理模式
+                    data = await queryWithNodeProxy(ip);
+                } else {
+                    // CORS 代理模式
+                    data = await queryWithCorsProxy(ip);
+                }
+                
+                if (data && data.data) {
+                    // 保存原始数据
+                    rawIPData = data;
+                    showIPResult(data.data);
+                    
+                    // 如果有经纬度信息，查询城市详情
+                    if (data.data.lat && data.data.lng) {
+                        await queryCityInfo(data.data.lat, data.data.lng);
+                    }
+                } else {
+                    showError('未找到该IP的地理位置信息');
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                showError(`查询失败: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function queryWithNodeProxy(ip) {
+            const response = await fetch(`${PROXY_CONFIG.node.ip}/${ip}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        }
+
+        async function queryWithCorsProxy(ip) {
+            const proxyUrl = PROXY_CONFIG.cors.allorigins;
+            const targetUrl = `${MEITUAN_API.ip}?rgeo=true&ip=${ip}`;
+            
+            const response = await fetch(`${proxyUrl}${encodeURIComponent(targetUrl)}`);
+            return await response.json();
+        }
+
+        async function queryCityInfo(lat, lng) {
+            try {
+                let data;
+                
+                if (currentMode === 'node') {
+                    // Node.js 代理模式
+                    const response = await fetch(`${PROXY_CONFIG.node.city}/${lat}/${lng}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    data = await response.json();
+                } else {
+                    // CORS 代理模式
+                    const proxyUrl = PROXY_CONFIG.cors.allorigins;
+                    const targetUrl = `${MEITUAN_API.city}/${lat},${lng}?tag=0`;
+                    
+                    const response = await fetch(`${proxyUrl}${encodeURIComponent(targetUrl)}`);
+                    data = await response.json();
+                }
+                
+                if (data && data.data) {
+                    // 保存原始数据
+                    rawCityData = data;
+                    showCityResult(data.data);
+                }
+            } catch (error) {
+                console.error('城市信息查询失败:', error);
+                showError(`城市信息查询失败: ${error.message}`);
+            }
+        }
+
+        function showIPResult(data) {
+            const flag = getCountryFlag(data.rgeo?.country);
+            const coordinates = data.lat && data.lng ? `${data.lat}, ${data.lng}` : '未知';
+            
+            const resultHTML = `
+                <div class="result-card enhanced">
+                    <div class="result-header">
+                        <div class="result-title">
+                            <span class="flag">${flag}</span>
+                            <span class="title-text">IP地理位置信息</span>
+                            <span class="ip-badge">${data.ip || '未知'}</span>
+                        </div>
+                        <div class="location-summary">
+                            <div class="location-path">
+                                <span class="country">${data.rgeo?.country || '未知'}</span>
+                                ${data.rgeo?.province ? `<span class="separator">></span><span class="province">${data.rgeo.province}</span>` : ''}
+                                ${data.rgeo?.city ? `<span class="separator">></span><span class="city">${data.rgeo.city}</span>` : ''}
+                                ${data.rgeo?.district ? `<span class="separator">></span><span class="district">${data.rgeo.district}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-details">
+                        <div class="detail-section">
+                            <div class="section-title">📍 地理位置</div>
+                            <div class="info-grid">
+                                <div class="info-item compact">
+                                    <div class="info-label">国家</div>
+                                    <div class="info-value">${flag} ${data.rgeo?.country || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">省份</div>
+                                    <div class="info-value">${data.rgeo?.province || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">城市</div>
+                                    <div class="info-value">${data.rgeo?.city || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">区域</div>
+                                    <div class="info-value">${data.rgeo?.district || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">区域代码</div>
+                                    <div class="info-value">${data.rgeo?.adcode || '未知'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="section-title">🌐 技术信息</div>
+                            <div class="info-grid">
+                                <div class="info-item compact">
+                                    <div class="info-label">坐标</div>
+                                    <div class="info-value coordinates">${coordinates}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">经度</div>
+                                    <div class="info-value coordinates">${data.lng || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">纬度</div>
+                                    <div class="info-value coordinates">${data.lat || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">数据源</div>
+                                    <div class="info-value">${data.fromwhere || '未知'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="raw-data-toggle" onclick="toggleRawData('ip')">
+                        <span class="icon">▼</span>
+                        <span class="text">查看原始数据</span>
+                    </button>
+                    
+                    <div class="raw-data-panel" id="ipRawData">
+                        <div class="raw-data-header">
+                            <h4 class="raw-data-title">IP查询原始数据</h4>
+                            <button class="copy-btn" onclick="copyToClipboard('ip')">复制</button>
+                        </div>
+                        <div class="raw-data-content">
+                            <pre id="ipRawContent">${formatJSON(rawIPData)}</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            results.innerHTML = resultHTML;
+        }
+
+        function showCityResult(data) {
+            const flag = getCountryFlag(data.country);
+            const statusBadge = data.isOpen ? 
+                '<span class="status-badge open">开放</span>' : 
+                '<span class="status-badge closed">未开放</span>';
+            const foreignBadge = data.isForeign ? 
+                '<span class="foreign-badge">海外</span>' : 
+                '<span class="domestic-badge">国内</span>';
+            
+            const cityResultHTML = `
+                <div class="result-card enhanced city-info">
+                    <div class="result-header">
+                        <div class="result-title">
+                            <span class="flag">${flag}</span>
+                            <span class="title-text">城市详细信息</span>
+                            <div class="badges">
+                                ${statusBadge}
+                                ${foreignBadge}
+                            </div>
+                        </div>
+                        <div class="location-summary">
+                            <div class="city-main-info">
+                                <div class="city-name">${data.city || '未知'}</div>
+                                <div class="city-pinyin">${data.cityPinyin || ''}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-details">
+                        <div class="detail-section">
+                            <div class="section-title">🏙️ 城市信息</div>
+                            <div class="info-grid">
+                                <div class="info-item compact">
+                                    <div class="info-label">城市名称</div>
+                                    <div class="info-value">${data.city || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">开放城市</div>
+                                    <div class="info-value">${data.openCityName || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">城市拼音</div>
+                                    <div class="info-value">${data.cityPinyin || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">省份</div>
+                                    <div class="info-value">${data.province || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">区域</div>
+                                    <div class="info-value">${data.district || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">详细地址</div>
+                                    <div class="info-value">${data.detail || '未知'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="section-title">🔢 系统信息</div>
+                            <div class="info-grid">
+                                <div class="info-item compact">
+                                    <div class="info-label">城市ID</div>
+                                    <div class="info-value">${data.id || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">DP城市ID</div>
+                                    <div class="info-value">${data.dpCityId || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">原始城市ID</div>
+                                    <div class="info-value">${data.originCityID || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">区域代码</div>
+                                    <div class="info-value">${data.area || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">父区域</div>
+                                    <div class="info-value">${data.parentArea || '未知'}</div>
+                                </div>
+                                <div class="info-item compact">
+                                    <div class="info-label">区域名称</div>
+                                    <div class="info-value">${data.areaName || '未知'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="raw-data-toggle" onclick="toggleRawData('city')">
+                        <span class="icon">▼</span>
+                        <span class="text">查看原始数据</span>
+                    </button>
+                    
+                    <div class="raw-data-panel" id="cityRawData">
+                        <div class="raw-data-header">
+                            <h4 class="raw-data-title">城市查询原始数据</h4>
+                            <button class="copy-btn" onclick="copyToClipboard('city')">复制</button>
+                        </div>
+                        <div class="raw-data-content">
+                            <pre id="cityRawContent">${formatJSON(rawCityData)}</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            results.innerHTML += cityResultHTML;
+        }
+
+        function getCountryFlag(country) {
+            const flags = {
+                '中国': '🇨🇳',
+                '美国': '🇺🇸',
+                '日本': '🇯🇵',
+                '韩国': '🇰🇷',
+                '英国': '🇬🇧',
+                '法国': '🇫🇷',
+                '德国': '🇩🇪',
+                '加拿大': '🇨🇦',
+                '澳大利亚': '🇦🇺',
+                '俄罗斯': '🇷🇺',
+                '印度': '🇮🇳',
+                '新加坡': '🇸🇬',
+                '香港': '🇭🇰',
+                '台湾': '🇹🇼',
+                '埃及': '🇪🇬'
+            };
+            return flags[country] || '🏳️';
+        }
+
+        function showError(message) {
+            results.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                searchBtn.disabled = true;
+                searchBtn.textContent = '查询中...';
+                results.innerHTML = '<div class="loading">🔍 正在查询中...</div>';
+            } else {
+                searchBtn.disabled = false;
+                searchBtn.textContent = '查询';
+            }
+        }
+
+        // 示例IP地址快捷按钮
+        const exampleIPs = ['1.1.1.1', '8.8.8.8', '114.114.114.114'];
+        const exampleButtons = exampleIPs.map(ip => 
+            `<button type="button" onclick="ipInput.value='${ip}'" style="margin: 5px; padding: 5px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer;">${ip}</button>`
+        ).join('');
+
+        // 在表单后添加示例按钮
+        form.insertAdjacentHTML('afterend', `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 10px;">快速测试:</p>
+                ${exampleButtons}
+            </div>
+        `);
+
+        // 原始数据相关功能
+        function formatJSON(data) {
+            if (!data) return '暂无数据';
+            
+            try {
+                const jsonString = JSON.stringify(data, null, 2);
+                return syntaxHighlight(jsonString);
+            } catch (e) {
+                return '数据格式错误';
+            }
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function toggleRawData(type) {
+            const panel = document.getElementById(type + 'RawData');
+            const toggle = panel.previousElementSibling;
+            const icon = toggle.querySelector('.icon');
+            const text = toggle.querySelector('.text');
+            
+            if (panel.classList.contains('expanded')) {
+                // 收起
+                panel.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+                icon.style.transform = 'rotate(0deg)';
+                text.textContent = '查看原始数据';
+            } else {
+                // 展开
+                panel.classList.add('expanded');
+                toggle.classList.add('expanded');
+                icon.style.transform = 'rotate(180deg)';
+                text.textContent = '隐藏原始数据';
+                
+                // 更新内容
+                const content = document.getElementById(type + 'RawContent');
+                const rawData = type === 'ip' ? rawIPData : rawCityData;
+                content.innerHTML = formatJSON(rawData);
+            }
+        }
+
+        function copyToClipboard(type) {
+            const rawData = type === 'ip' ? rawIPData : rawCityData;
+            const jsonString = JSON.stringify(rawData, null, 2);
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(jsonString).then(() => {
+                    showCopySuccess(type);
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    fallbackCopyTextToClipboard(jsonString, type);
+                });
+            } else {
+                fallbackCopyTextToClipboard(jsonString, type);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text, type) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopySuccess(type);
+            } catch (err) {
+                console.error('复制失败:', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopySuccess(type) {
+            const copyBtn = document.querySelector(`#${type}RawData .copy-btn`);
+            const originalText = copyBtn.textContent;
+            
+            copyBtn.textContent = '已复制';
+            copyBtn.classList.add('copied');
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

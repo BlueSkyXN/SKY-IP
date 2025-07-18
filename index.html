@@ -685,16 +685,16 @@
                 <button type="button" class="mode-btn" data-mode="node">Node代理</button>
             </div>
             <div class="mode-info">
-                <div class="mode-description" id="corsMode" style="display: none;">
+                <div class="mode-description" id="corsMode">
                     <strong>CORS代理模式:</strong> 使用公共代理服务，无需本地服务器，但可能不稳定
                 </div>
-                <div class="mode-description" id="nodeMode">
+                <div class="mode-description" id="nodeMode" style="display: none;">
                     <strong>Node代理模式:</strong> 使用本地代理服务器，稳定可靠，需要运行 <code>npm start</code>
                 </div>
             </div>
         </div>
 
-        <div class="cors-proxy-selector" id="corsProxySelector" style="display: none;">
+        <div class="cors-proxy-selector" id="corsProxySelector">
             <h4>CORS代理服务</h4>
             <div class="proxy-options">
                 <label><input type="radio" name="corsProxy" value="allorigins" checked> AllOrigins Raw</label>

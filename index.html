@@ -703,7 +703,7 @@
 
         <form class="search-form" id="searchForm">
             <div class="input-group">
-                <input type="text" id="ipInput" placeholder="请输入IP地址 (例如: 1.1.1.1)" required>
+                <input type="text" id="ipInput" placeholder="请输入IP地址 (例如: 1.1.1.1 或 2001:db8::1)" required>
             </div>
             <button type="submit" class="search-btn" id="searchBtn">查询</button>
         </form>
@@ -786,8 +786,70 @@
         });
 
         function isValidIP(ip) {
-            const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-            return ipRegex.test(ip);
+            // IPv4 正则表达式
+            const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            
+            if (ipv4Regex.test(ip)) {
+                return true;
+            }
+            
+            // IPv6 验证逻辑
+            return isValidIPv6(ip);
+        }
+        
+        function isValidIPv6(ip) {
+            // 移除方括号（如果存在）
+            ip = ip.replace(/^\[|\]$/g, '');
+            
+            // 检查是否包含无效字符
+            if (!/^[0-9a-fA-F:]+$/.test(ip)) {
+                return false;
+            }
+            
+            // 特殊情况：仅为 :: 
+            if (ip === '::') {
+                return true;
+            }
+            
+            // 特殊情况：localhost
+            if (ip === '::1') {
+                return true;
+            }
+            
+            // 检查双冒号的数量（最多只能有一个）
+            const doubleColonCount = (ip.match(/::/g) || []).length;
+            if (doubleColonCount > 1) {
+                return false;
+            }
+            
+            // 如果有双冒号，处理压缩格式
+            if (doubleColonCount === 1) {
+                const parts = ip.split('::');
+                if (parts.length !== 2) {
+                    return false;
+                }
+                
+                const leftParts = parts[0] ? parts[0].split(':') : [];
+                const rightParts = parts[1] ? parts[1].split(':') : [];
+                
+                // 检查总段数不能超过8
+                if (leftParts.length + rightParts.length >= 8) {
+                    return false;
+                }
+                
+                // 验证每个段
+                const allParts = [...leftParts, ...rightParts];
+                return allParts.every(part => part === '' || (part.length <= 4 && /^[0-9a-fA-F]+$/.test(part)));
+            } else {
+                // 完整格式，必须有8段
+                const parts = ip.split(':');
+                if (parts.length !== 8) {
+                    return false;
+                }
+                
+                // 验证每个段
+                return parts.every(part => part.length <= 4 && /^[0-9a-fA-F]+$/.test(part));
+            }
         }
 
         async function queryIPLocation(ip) {
@@ -1113,16 +1175,16 @@
             }
         }
 
-        // 示例IP地址快捷按钮
-        const exampleIPs = ['1.1.1.1', '8.8.8.8', '114.114.114.114'];
+        // 示例IP地址快捷按钮 (包含IPv4和IPv6)
+        const exampleIPs = ['1.1.1.1', '8.8.8.8', '114.114.114.114', '2001:4860:4860::8888', '2606:4700:4700::1111', '::1'];
         const exampleButtons = exampleIPs.map(ip => 
-            `<button type="button" onclick="ipInput.value='${ip}'" style="margin: 5px; padding: 5px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer;">${ip}</button>`
+            `<button type="button" onclick="ipInput.value='${ip}'" style="margin: 5px; padding: 5px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; font-family: monospace;">${ip}</button>`
         ).join('');
 
         // 在表单后添加示例按钮
         form.insertAdjacentHTML('afterend', `
             <div style="text-align: center; margin-bottom: 20px;">
-                <p style="color: #666; margin-bottom: 10px;">快速测试:</p>
+                <p style="color: #666; margin-bottom: 10px;">快速测试 (IPv4 和 IPv6):</p>
                 ${exampleButtons}
             </div>
         `);
